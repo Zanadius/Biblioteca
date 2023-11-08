@@ -8,8 +8,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-
-
 public class BibliotecaMain {
 
 	public static void main(String[] args) {
@@ -111,7 +109,7 @@ public class BibliotecaMain {
 		do {
 			// Pinta Menu
 			String[] preguntas = { "1. Mostrar info biblioteca", "2. Mostrar libros de la biblioteca ",
-					"3. Buscar libro", "4. Insertar libro", "5. Modificar.", "6.Borrar", "7.Volver" };
+					"3. Buscar libro", "4. Insertar libro", "5. Modificar", "6. Precio libros", "7. Borrar", "8. Volver" };
 			opcion = Utilidades.pintarMenu(preguntas, "Elige una opcion");
 
 			switch (opcion) {
@@ -130,8 +128,11 @@ public class BibliotecaMain {
 			case 5:
 				modificarLibro(biblioteca);
 				break;
-			case 6: borrarLibro(biblioteca); break;
-			case 7: iniciarMenu(); break;
+			case 6:
+				precioLibros();
+				break;
+			case 7: borrarLibro(biblioteca); break;
+			case 8: iniciarMenu(); break;
 			default:
 				System.out.println("Opción incorrecta");
 			}
@@ -453,10 +454,7 @@ public class BibliotecaMain {
 			ResultSet rs = null;
 
 			try {
-
-				System.out.println("Estableciendo conexión");
 				connection = DriverManager.getConnection(url, username, password);
-				System.out.println("Conexión establecida");
 
 				prepareStament = connection
 						.prepareStatement("DELETE FROM TB_LIBROS WHERE TITULO=?");
@@ -485,6 +483,60 @@ public class BibliotecaMain {
 		}else {
 			System.out.println("El libro no se puede eliminar porque no existe.");
 		}
+	}
+	
+	private void precioLibros() throws SQLException {
+		String url = "jdbc:mysql://localhost:3306/curso?serverTimezone=Europe/Madrid";
+		String username = "root";
+		String password = "password";
+
+		Connection connection = null;
+		PreparedStatement prepareStament = null;
+		ResultSet rs = null;
+		
+		try {
+
+			System.out.println("Estableciendo conexión");
+			connection = DriverManager.getConnection(url, username, password);
+			System.out.println("Conexión establecida");
+
+			prepareStament = connection.prepareStatement("SELECT biblio.NOMBRE AS NOMBRE_BIBLIOTECA, "
+					+ "COUNT(libros.ID) AS TOTAL_LIBROS, AVG(libros.PRECIO) AS PRECIO_MEDIO\r\n"
+					+ "FROM TB_LIBROS AS libros\r\n"
+					+ "INNER JOIN TB_BIBLIOTECA AS biblio ON libros.FK_BIBLIOTECA = biblio.ID\r\n"
+					+ "GROUP BY libros.FK_BIBLIOTECA\r\n"
+					+ "ORDER BY PRECIO_MEDIO DESC;");
+
+			rs = prepareStament.executeQuery();
+
+			while (rs.next()) {
+				String nombreBiblioteca = (rs.getString("NOMBRE_BIBLIOTECA"));
+				int totalLibros = (rs.getInt("TOTAL_LIBROS"));
+				double precioMedio = (rs.getDouble("PRECIO_MEDIO"));
+				
+				System.out.println(nombreBiblioteca+"\n"+"Tiene disponibles: " + totalLibros + "\n"+
+				"El precio medio de todos sus libros es de " + precioMedio +"€" + "\n");
+
+			}
+
+		} catch (SQLException e) {
+			System.err.println("Ha habido un error " + e.getMessage());
+
+		} finally {
+
+			try {
+				if (connection != null) {
+					connection.close();
+				}
+				if (prepareStament != null)
+					prepareStament.close();
+				if (rs != null)
+					rs.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		
 	}
 
 }
